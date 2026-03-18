@@ -604,6 +604,21 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="share-buttons">
+        <span class="share-label">Share:</span>
+        <button class="share-btn share-twitter tooltip" aria-label="Share on Twitter/X" data-activity="${name}">
+          𝕏
+          <span class="tooltip-text">Share on Twitter/X</span>
+        </button>
+        <button class="share-btn share-facebook tooltip" aria-label="Share on Facebook" data-activity="${name}">
+          f
+          <span class="tooltip-text">Share on Facebook</span>
+        </button>
+        <button class="share-btn share-copy tooltip" aria-label="Copy link" data-activity="${name}">
+          🔗
+          <span class="tooltip-text">Copy link</span>
+        </button>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -621,6 +636,57 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add share button event handlers
+    const shareUrl = `${window.location.origin}${window.location.pathname}?activity=${encodeURIComponent(name)}`;
+    // Limit tweet text to fit Twitter's 280-character limit (reserve ~25 chars for the URL t.co link)
+    const maxTweetLength = 255;
+    const baseText = `Check out "${name}" at Mergington High School! `;
+    const remainingChars = maxTweetLength - baseText.length;
+    const truncatedDesc = details.description.length > remainingChars
+      ? details.description.slice(0, remainingChars - 1) + "…"
+      : details.description;
+    const shareText = baseText + truncatedDesc;
+
+    activityCard.querySelector(".share-twitter").addEventListener("click", () => {
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+      window.open(twitterUrl, "_blank", "noopener,noreferrer");
+    });
+
+    activityCard.querySelector(".share-facebook").addEventListener("click", () => {
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+      window.open(facebookUrl, "_blank", "noopener,noreferrer");
+    });
+
+    activityCard.querySelector(".share-copy").addEventListener("click", (event) => {
+      const btn = event.currentTarget;
+      const tooltip = btn.querySelector(".tooltip-text");
+      const showCopied = () => {
+        tooltip.textContent = "Copied!";
+        setTimeout(() => { tooltip.textContent = "Copy link"; }, 2000);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(shareUrl).then(showCopied).catch(() => {
+          showMessage("Failed to copy link. Please copy the URL manually.", "error");
+        });
+      } else {
+        // Fallback for non-HTTPS or unsupported browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand("copy");
+          showCopied();
+        } catch {
+          showMessage("Failed to copy link. Please copy the URL manually.", "error");
+        }
+        document.body.removeChild(textArea);
+      }
+    });
 
     activitiesList.appendChild(activityCard);
   }
